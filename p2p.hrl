@@ -1,0 +1,1 @@
+-record(ids,{id, server_pid, client_pid}).

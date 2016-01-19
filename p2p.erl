@@ -1,6 +1,7 @@
 -module(p2p).
 
--export([create_peer/0, create_peer/1, server_loop/3, client_loop/3, create_network/1, create_supervisor/1, supervisor_loop/1]).
+-export([create_peer/0, create_peer/1, server_loop/3, client_loop/3, client_get_known_peers/2]).
+-include("p2p.hrl").
 
 %%% Based on: https://www.youtube.com/watch?v=kXyVqk3EbwE
 
@@ -147,7 +148,7 @@ create_peer() ->
 	%%% Run the client functions in its own process
 	Client_pid = spawn(p2p, client_loop, [Id, Our_cookie, Server_pid]),
 
-	{Id, Server_pid, Client_pid}.
+	#ids{id=Id, server_pid=Server_pid, client_pid=Client_pid}.
 
 %%% Creates every other peer in our p2p network
 create_peer(Peer_pid) ->
@@ -179,72 +180,7 @@ create_peer(Peer_pid) ->
 	%%% Run the client functions in its own process
 	Client_pid = spawn(p2p, client_loop, [Id, Our_cookie, Server_pid]),
 
-	{Id, Server_pid, Client_pid}.
-
-%%% Spawns a bunch of nodes to make up a p2p network
-%%% Be careful because if you create_peers too fast they won't
-%%% have time to pull down a Known_peers list from their Peer
-%%% and you'll end up with poor connectivity
-create_network(N) ->
-	{Id, Server_pid, Client_pid} = create_peer(),
-	io:format("create_peer() returned {~p, ~p, ~p}~n", [Id, Server_pid, Client_pid]),
-	timer:sleep(100),
-	create_network(N - 1, [{Id, Server_pid, Client_pid}]).
-create_network(0, Results) ->
-	Results;
-create_network(N, Results) ->
-	{_, Random_server_pid, _} = lists:nth(rand:uniform(length(Results)), Results),
-	{Id, Server_pid, Client_pid} = create_peer(Random_server_pid),
-	io:format("create_peer(~p) returned {~p, ~p, ~p}~n", [Random_server_pid, Id, Server_pid, Client_pid]),
-	timer:sleep(100),
-	create_network(N - 1, [{Id, Server_pid, Client_pid} | Results]).
-
-%%% Creates a network and collects stats 
-create_supervisor(N) ->
-	Ids = create_network(N),
-	spawn(p2p, supervisor_loop, [Ids]).
-
-%%% This makes a conversion table between our ids and the TGF ids
-%%% TGF Ids start at one
-make_id_to_tgfid_list(Ids) ->
-	make_id_to_tgfid_list(Ids, [], 1).
-make_id_to_tgfid_list([], List, _) ->
-	List;
-make_id_to_tgfid_list([{Id, Server_pid, Client_pid}|Tail], List, TGF_id) ->
-	New_list = lists:keystore(Id, 2, List, {TGF_id, Id}),
-	make_id_to_tgfid_list(Tail, New_list, TGF_id + 1).
-
-%%% Takes a peer list, looks up the Ids and makes a TGF connection
-%%% for each one
-convert_peer_list_to_connections_list(Id, Peer_list, TGFid_list) ->
-	convert_peer_list_to_connections_list(Id, Peer_list, TGFid_list, []).
-convert_peer_list_to_connections_list(_, [], _, List) ->
-	List;
-convert_peer_list_to_connections_list(Id, [{Peer_id, Peer_pid}|Tail], TGFid_list, List) ->
-	{TGFid_1, Id} = lists:keyfind(Id, 2, TGFid_list),
-	{TGFid_2, Peer_id} = lists:keyfind(Peer_id, 2, TGFid_list),
-	convert_peer_list_to_connections_list(Id, Tail, TGFid_list, [{TGFid_1, TGFid_2}|List]).
-	
-dump_peers([]) ->
-	done;
-dump_peers([{Id, Server_pid, Client_pid}|Tail]) ->
-	Known_peers = client_get_known_peers(Server_pid, Id),
-	{ok, Stream} = file:open("/tmp/test.txt", write),
-	io:format(Stream, "~p~n", [Known_peers]),
-	file:close(Stream),
-	dump_peers(Tail).
-
-supervisor_loop(Ids) ->
-	receive
-		dump_peers ->
-			io:format("Dumping peers to the filesystem~n", []),
-			TGFid_list = make_id_to_tgfid_list(Ids),
-			io:format("Conversion list ~p~n", [TGFid_list]),
-			{Id, Server_pid, Client_pid} = lists:nth(2, Ids),
-			Known_peers =  client_get_known_peers(Server_pid, Id),
-			io:format("Connections list ~p~n", [convert_peer_list_to_connections_list(Id, Known_peers, TGFid_list)]) 
-	end,
-	supervisor_loop(Ids).
+	#ids{id=Id, server_pid=Server_pid, client_pid=Client_pid}.
 
 client_loop(Id, Our_cookie, Server_pid) ->
 	receive
