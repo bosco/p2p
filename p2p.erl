@@ -1,36 +1,9 @@
 -module(p2p).
-
 -export([create_peer/0, create_peer/1, server_loop/3, client_loop/3, client_get_known_peers/2]).
 -include("p2p.hrl").
 
 %%% Based on: https://www.youtube.com/watch?v=kXyVqk3EbwE
 
-%%% Gives us a random number we can use in our request strings
-%%% to make sure servers are responding to us
-create_cookie() -> 
-	rand:uniform(4294967296).
-
-%%% Gives a random number between 1 and 2**32
-%%% there has to be a nicer way to do this, like
-%%% with a constant or something
-create_id() ->
-	rand:uniform(4294967296).
-
-%%% Tells you the distance between two peers. Uses XOR like kademlia
-calculate_distance(Peer1_id, Peer2_id) ->
-	Peer1_id bxor Peer2_id.
-
-%%% Add the distance from ourselves to a peerl list so we can print it out
-add_distance_to_peer_list([], _, New_list) ->
-	New_list;
-add_distance_to_peer_list([{Peer_id, Peer_pid} | Tail], Id, New_list) ->
-	add_distance_to_peer_list(Tail, Id, [{Peer_id, Peer_pid, calculate_distance(Peer_id, Id)} | New_list]).
-
-%%% Prints out a nice ordered list of known peers and their distance
-print_peer_list(Peers, Id) ->
-	Sorted_list = lists:keysort(3, add_distance_to_peer_list(Peers, Id, [])),
-	io:format("=== Peers ===~n{ID, Erlang PID, Distance}~n", []),
-	lists:foreach(fun(Peer) -> io:format("~p~n", [Peer]) end, Sorted_list).  
 %%% Adds a peer to the known peers list, keystore will NOT allow duplicate IDs, will NOT allow more than 32 peers
 add_known_peer({Peer_id, Peer_pid}, Known_peers) ->
 	if
@@ -49,11 +22,11 @@ add_known_peers([Peer | Tail], Known_peers) ->
 %%% This gives you the ID and PID of the closest peer we can find in our Known_peers
 %%% this could probably be in a tree, making searching faster
 find_closest_peer_local(Peer1_id, [{Peer2_id, Peer2_pid} | Tail]) ->
-	find_closest_peer_local(Peer1_id, {Peer2_id, Peer2_pid}, calculate_distance(Peer1_id, Peer2_id), Tail).
+	find_closest_peer_local(Peer1_id, {Peer2_id, Peer2_pid}, calc:distance(Peer1_id, Peer2_id), Tail).
 find_closest_peer_local(_, Closest_peer, _, []) ->
 	Closest_peer;
 find_closest_peer_local(Peer1_id, Closest_peer, Smallest_distance, [{Peer2_id, Peer2_pid} | Tail]) ->
-	Distance = calculate_distance(Peer1_id, Peer2_id),
+	Distance = calc:distance(Peer1_id, Peer2_id),
 	if Distance < Smallest_distance ->
 		   find_closest_peer_local(Peer1_id, {Peer2_id, Peer2_pid}, Distance, Tail);
 	true ->
@@ -71,7 +44,7 @@ calc_optimal_peer_ids(Id, Distance, Optimal_peer_ids) ->
 %%% This recursively queries peers to find a certain ID until the peer returns
 %%% itself as the closest
 client_find_closest({Id, Server_pid}, Search_id, {Peer_id, Peer_pid}) ->
-	Cookie = create_cookie(),
+	Cookie = calc:create_cookie(),
 	Peer_pid ! {find_closest, self(), {Id, Server_pid}, Search_id, Cookie},
 	receive
 		{{Result_id, Result_pid}, Cookie} ->
@@ -108,7 +81,7 @@ make_new_known_peers([Peer_id | Optimal_peer_ids], Known_peers, {Id, Server_pid}
 	
 %%% Reach out to a peer to get their Known_peers list
 client_get_known_peers(Peer_pid, Id) ->
-	Cookie = create_cookie(),
+	Cookie = calc:create_cookie(),
 	Peer_pid ! {get_known_peers, self(), Cookie},
 	receive %% Needs timeout condition
 		{Received_peers, Cookie} ->
@@ -136,8 +109,8 @@ refresh_known_peers(Known_peers, {Id, Server_pid}) ->
 %%% Creates the first peer in our p2p network
 create_peer() ->
 	%%% Start up the server process ASAP because we can get queries right after the join
-	Our_cookie = create_cookie(),
-	Id = create_id(),
+	Our_cookie = calc:create_cookie(),
+	Id = calc:create_id(),
 	io:format("Initial ID is ~p~n", [Id]),
 	Server_pid = spawn(p2p, server_loop, [[], Id, Our_cookie]),
 
@@ -153,8 +126,8 @@ create_peer() ->
 %%% Creates every other peer in our p2p network
 create_peer(Peer_pid) ->
 	%%% Start up the server process ASAP because we can get queries right after the join
-	Our_cookie = create_cookie(),
-	Id = create_id(),
+	Our_cookie = calc:create_cookie(),
+	Id = calc:create_id(),
 	io:format("My ID is ~p~n", [Id]),
 	Server_pid = spawn(p2p, server_loop, [[], Id, Our_cookie]),
 
