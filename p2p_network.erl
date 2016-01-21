@@ -56,15 +56,6 @@ get_network_connections([Ids|Tail], TGFid_list, Connections) ->
 	New_connections = convert_peer_list_to_connections_list(Ids#ids.id, Known_peers, TGFid_list),
 	get_network_connections(Tail, TGFid_list, lists:append(Connections, New_connections)).
 	
-%%%dump_peers([]) ->
-%%%	done;
-%%%dump_peers([{Id, Server_pid, Client_pid}|Tail]) ->
-%%%	Known_peers = client_get_known_peers(Server_pid, Id),
-%%%	{ok, Stream} = file:open("/tmp/test.txt", write),
-%%%	io:format(Stream, "~p~n", [Known_peers]),
-%%%	file:close(Stream),
-%%%	dump_peers(Tail).
-
 supervisor_loop(Ids_list) ->
 	receive
 		output_tgf ->

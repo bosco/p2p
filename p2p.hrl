@@ -6,11 +6,14 @@
 %%% the size of our id in bits (SHA1 is 160 bits)
 -define(id_size, 160).
 
-%%% this is how often we rebuild our Peers tree
--define(refresh, 10000).
+%%% this is how long we wait to rebuild our Peers tree
+-define(refresh, 1000).
 
 %%% how long to wait for responses to our client requests
 -define(client_timeout, 2000).
+
+%%% how many hops can we take to find out best peer in the network
+-define(max_hops, 8).
 
 %%% Records
 

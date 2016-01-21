@@ -1,7 +1,7 @@
 %%% All our client functions go in here, including the main loop
 
 -module(client).
--export([client_loop/3, find_closest/3]).
+-export([client_loop/3, find_closest/3, get_peers/2]).
 -include("p2p.hrl").
 
 find_closest(Peer, Pid, Id) ->
@@ -25,18 +25,20 @@ get_peers(Peer, Pid) ->
 	end.
 
 client_loop(Id, Secret_cookie, Server_pid) ->
-	register(server, Server_pid),
 	Peer = #peer{id=Id, server_pid=Server_pid, client_pid=self()},
 	client_loop(Peer, Secret_cookie).
 client_loop(Peer, Secret_cookie) ->
 	receive
+		print_peers ->
+			Peers =  get_peers(Peer, Peer#peer.server_pid),
+			io:format("~p~n", [Peers]);
+		{find_peer, Id} ->
+			Peers =  get_peers(Peer, Peer#peer.server_pid),
+			Result = peer:closest_peer_in_network(Peer, Peers, Id),
+			io:format("~p~n", [Result])
 	after ?refresh ->
-		Peers =  get_peers(Peer, server),
-
-		Test = peer:closest_peer_in_network(Peer, Peers, calc:id()),
-		io:format("~p~n", [Test]),
-
-		New_peers = Peers,
-		server ! #update_peers{cookie=Secret_cookie, peers=New_peers}
+		Peers =  get_peers(Peer, Peer#peer.server_pid),
+		New_peers = peer:create_peers(Peer, Peers),
+		Peer#peer.server_pid ! #update_peers{cookie=Secret_cookie, peers=New_peers}
 	end,
 	client_loop(Peer, Secret_cookie).
