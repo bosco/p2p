@@ -1,7 +1,7 @@
 %%% All our general stuff dealing with making peers, maintaining peers lists, etc.
 
 -module(peer).
--export([create_peer/0, add_peer/2, closest_peer/2]).
+-export([create_peer/0, add_peer/2, closest_peer/2, closest_peer_in_network/3]).
 -include("p2p.hrl").
 
 %%% Adds a peer to our local peers tree
@@ -24,6 +24,23 @@ closest_peer(Search_key, {Key, _, Smaller, _}) when Search_key < Key ->
 closest_peer(Search_key, {Key, _, _, Bigger}) when Search_key >= Key ->
 	closest_peer(Search_key, Bigger).
 
+%%% Finds the closest peer in the whole network
+%%% Peer is who we are (servers want to know this to add us)
+%%% Peers is our peer tree
+%%% Id is the Id we're looking for
+closest_peer_in_network(Peer, _, Id) when Peer#peer.id == Id ->
+	Peer; %% they searched for themselves
+closest_peer_in_network(Peer, Peers, Id) ->
+	%% Start in our tree
+	Result = closest_peer(Id, Peers),
+	recursive_find_closest(Peer, Id, nil, Result).
+
+recursive_find_closest(_, _, Result, Result) ->
+	Result;
+recursive_find_closest(Peer, Id, _, Result) ->
+	New_Result = client:find_closest(Peer, Result#peer.server_pid, Id),
+	recursive_find_closest(Peer, Id, Result, New_Result).
+
 %%% Creates the first peer in our p2p network
 create_peer() ->
 	Secret_cookie = calc:cookie(),
@@ -33,7 +50,7 @@ create_peer() ->
 	%%% Start up the server process ASAP because we can get queries right after the join
 	%%% we have a secret_cookie with the server process so only we can update its
 	%%% peer list also we can't add ourselves as a peer until we get the Server_pid back
-	Server_pid = spawn(server, server_loop, [Empty_peers, Id, Secret_cookie]),
+	Server_pid = spawn(server, server_loop, [Empty_peers, Secret_cookie]),
 
 	%%% Start up the client process too, because we need it's PID to add ourselves as a peer
 	Client_pid = spawn(client, client_loop, [Id, Secret_cookie, Server_pid]),
