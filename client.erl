@@ -29,13 +29,14 @@ client_loop(Id, Secret_cookie, Server_pid) ->
 	client_loop(Peer, Secret_cookie).
 client_loop(Peer, Secret_cookie) ->
 	receive
-		print_peers ->
+		{peer_count, Pid} ->
 			Peers =  get_peers(Peer, Peer#peer.server_pid),
-			io:format("~p~n", [Peers]);
-		{find_peer, Id} ->
+			{ Length, _ } = Peers,
+			Pid ! Length;
+		{find_peer, Pid, Id} ->
 			Peers =  get_peers(Peer, Peer#peer.server_pid),
-			Result = peer:closest_peer_in_network(Peer, Peers, Id),
-			io:format("~p~n", [Result])
+%%%			Pid ! peer:closest_peer_in_network(Peer, Peers, Id)
+			Pid ! peer:closest_peer(Id, Peers)
 	after ?refresh ->
 		Peers =  get_peers(Peer, Peer#peer.server_pid),
 		New_peers = peer:create_peers(Peer, Peers),

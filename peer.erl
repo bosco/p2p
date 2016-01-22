@@ -33,7 +33,12 @@ closest_peer_in_network(Peer, _, Id) when Peer#peer.id == Id ->
 closest_peer_in_network(Peer, Peers, Id) ->
 	%% Start in our tree
 	Result = closest_peer(Id, Peers),
-	recursive_find_closest(Peer, Id, nil, Result, ?max_hops).
+	if
+		Result#peer.id == Id -> %% We found it locally
+			Result;
+		true ->
+			recursive_find_closest(Peer, Id, nil, Result, ?max_hops)
+	end.
 
 recursive_find_closest(_, _, _, Result, 0) ->
 	Result; %% They've exceeded the max hops (avoids loops)
@@ -48,7 +53,7 @@ recursive_find_closest(Peer, Id, _, Result, Remaining_hops) ->
 %%% Creates a peers tree using another peers tree
 %%% 1. find the best peers in the network using the old tree
 %%% 2. put them in the new tree
-%%% 2. fill the rest of the new tree with the best peers in the old tree
+%%% 3. put any remaining peers from the old tree in the new tree 
 %%% Peer is us (needed for client:find_closest)
 %%% Peers is our old Peer tree
 %%% returns a new Peer tree
@@ -56,8 +61,9 @@ create_peers(Peer, Peers) ->
 	Best_peers = calc:best_peers(Peer#peer.id),
 	Best_peers_in_network = lists:map(fun(Id) -> closest_peer_in_network(Peer, Peers, Id) end, Best_peers),
 	New_peers = lists:foldl(fun(Network_peer, New_peers) -> add_peer(Network_peer, New_peers) end, gb_trees:empty(), Best_peers_in_network),
-	Best_peers_in_old_peers = lists:map(fun(Id) -> closest_peer(Id, Peers) end, Best_peers),
-	lists:foldl(fun(Old_peer, New_peers2) -> add_peer(Old_peer, New_peers2) end, New_peers, Best_peers_in_old_peers).
+	%% Convert our Peers tree to a list of peer records
+	Peers_list = lists:foldl(fun({Id, {Server_id, Client_id}}, Peers_list) -> [#peer{id=Id, server_pid=Server_id, client_pid=Client_id}|Peers_list] end, [], gb_trees:to_list(Peers)),
+	lists:foldl(fun(Old_peer, New_peers2) -> add_peer(Old_peer, New_peers2) end, New_peers, Peers_list).
 
 %%% Creates the first peer in our p2p network
 create_peer(Remote_pid) ->

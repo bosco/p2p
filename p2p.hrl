@@ -7,7 +7,7 @@
 -define(id_size, 160).
 
 %%% this is how long we wait to rebuild our Peers tree
--define(refresh, 1000).
+-define(refresh, 100).
 
 %%% how long to wait for responses to our client requests
 -define(client_timeout, 2000).
