@@ -1,7 +1,7 @@
 # p2p
 ![16 peer network](https://raw.githubusercontent.com/bosco/p2p/master/16_peer_network.png)
 
-I wanted to learn me some erlang for great good, so I wrote this p2p network simulator. It is based on [this awesome video](https://www.youtube.com/watch?v=kXyVqk3EbwE) It starts up a bunch of processes to simulate peers on a network. Each peer has two processes: a client process that handles peer discovery (as well as some requestions from the supervisor) and a server process that answers information requests. There is also a network supervisor which can be used to gather statistics about the network.
+I wanted to learn me some erlang for great good, so I wrote this p2p network simulator. It is based on [this awesome video.](https://www.youtube.com/watch?v=kXyVqk3EbwE) It starts up a bunch of processes to simulate peers on a network. Each peer has two processes: a client process that handles peer discovery (as well as some requests from the supervisor) and a server process that answers information requests. There is also a network supervisor which can be used to gather statistics about the network.
 
 ## Data Structures
 
@@ -19,7 +19,7 @@ This is a gb\_tree that contains all the peers a peer knows about. The key is th
 
 ## Protocol
 ### get\_peers
-This takes a \#peer record with the client information, a pid to respond to, and a cookie from the client. It responds with a gb\_tree of the peers the server currently knows about and the cookie the client sent us. The client's peer information is added to the server's tree of known peers.
+This takes a \#peer record with the client information, a pid to respond to, and a cookie from the client. It responds with a tree of the peers the server currently knows about and the cookie the client sent us. The client's peer information is added to the server's tree of known peers.
 ### find\_closest
 This takes a \#peer record with the client information, a pid to resond to, a cookie from the client, and an id to look form. The server searches through its of peers and responds with the peer closest to the id the client was looking for as well as the cookie the client sent us. The client's peer information is added to the server's tree of known peers.
 ### update\_peers
@@ -31,13 +31,13 @@ When a peer is created it gives itself a 160 bit SHA1 hash. It also reaches out 
 To find an ID a peer starts by looking in its own tree and finding the closest ID it can. It then reaches out to that peer and asks it for the closest peer it has to that ID. So on and so forth until it either finds what it was looking for, ends up getting stopped at a peer that thinks it is the closest to that ID, or reaches the maximum number of hops (this is to avoid routing loops).
 
 ### Supervisor
-In the network.erl file the create\_supervisor/1 function will building a p2p network where each peer starts off by being randomly connected to another peer. The supervisor process is linked to all other processes and has some cool commands:
+In the network.erl file the create\_supervisor/1 function will build a p2p network where each peer starts off by being randomly connected to another peer. The supervisor process is linked to all other processes and has some cool commands:
 
 **die** - Kills itself
 
 **net\_status** - Reaches out to every peer to find how many peers it knows about and how many peers in the network it can connect to. Also gives you an average of the percentage of other peers each peer can connect to.
 
-**refresh_peers** - Reaches out to each peer and tells it to go through its discovery procedure. ?refresh defined in p2p.hrl sets the timeout for peers to do this automatically. As of this writing it's set to one day, but it changes all the time as I test stuff.
+**refresh_peers** - Reaches out to each peer and tells it to go through its discovery procedure. ?refresh, defined in p2p.hrl, sets the timeout for peers to do this automatically. As of this writing it's set to one day, but it changes all the time as I test stuff.
 
 **output_tgf** - Takes a filename as input and creates a Trivial Graph Format file for the network with all the nodes and their current connections. You can then use yEd to get a visual representation of the network.
 
