@@ -8,7 +8,7 @@
 
 %%% this is how long we wait to rebuild our Peers tree
 %%%-define(refresh, 2000).
--define(refresh, 10*60*1000). %% 10 minutes is plenty of time to do a timelapse
+-define(refresh, 24*60*60*1000). %% 10 minutes is plenty of time to do a timelapse
 
 %%% how long to wait for responses to our client requests
 -define(client_timeout, 2000).

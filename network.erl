@@ -131,16 +131,16 @@ supervisor_loop(Ids_list) ->
 	        receive
 			die ->
 				exit(die);
-
 			net_status ->
 				Percentage_sum = lists:foldl(fun(Peer, Sum) -> peer_status(Peer, Ids_list) + Sum end, 0, Ids_list),
 				io:format("Connectivity percentage ~p%~n", [trunc(Percentage_sum / length(Ids_list))]);
+			refresh_peers ->
+				refresh_peers(Ids_list);
 			{output_tgf, Filename} ->
 				io:format("Writing network structure to ~p~n", [Filename]),
 				output_tgf(Ids_list, Filename);
 			{time_lapse, Steps} ->
 				io:format("Doing ~p step time-lapse~n", [Steps]),
 				time_lapse(Ids_list, Steps)
-
 		end,
 		supervisor_loop(Ids_list).
