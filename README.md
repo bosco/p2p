@@ -1,4 +1,6 @@
 # p2p
+![16 peer network](https://raw.githubusercontent.com/bosco/p2p/master/16_peer_network.png)
+
 I wanted to learn me some erlang for great good, so I wrote this p2p network simulator. It is based on [this awesome video](https://www.youtube.com/watch?v=kXyVqk3EbwE) It starts up a bunch of processes to simulate peers on a network. Each peer has two processes: a client process that handles peer discovery (as well as some requestions from the supervisor) and a server process that answers information requests. There is also a network supervisor which can be used to gather statistics about the network.
 
 ## Data Structures
@@ -23,7 +25,7 @@ This takes a \#peer record with the client information, a pid to resond to, a co
 ### update\_peers
 This can ONLY be called by our client process wich has our secret cookie. It replaces our old known peers tree with a new one. It returns nothing.
 
-### Peer discovery
+## Peer discovery
 When a peer is created it gives itself a 160 bit SHA1 hash. It also reaches out to another peer to download its peers tree. Using that peers tree a new peer searches for other peers closest to it (falling off by a factor of two each time). If there is extra space in the tree the peer puts any remaining peers in the tree it downloaded into its own tree.
 
 To find an ID a peer starts by looking in its own tree and finding the closest ID it can. It then reaches out to that peer and asks it for the closest peer it has to that ID. So on and so forth until it either finds what it was looking for, ends up getting stopped at a peer that thinks it is the closest to that ID, or reaches the maximum number of hops (this is to avoid routing loops).
@@ -43,7 +45,7 @@ In the network.erl file the create\_supervisor/1 function will building a p2p ne
 
 ### Usage
 
-'''
+```
 1> network:create_supervisor(16).
 Network created and supervisor registered as supervisor.
 ok
@@ -61,4 +63,4 @@ Connectivity percentage 100%
 5> supervisor ! {output_tgf, "16_peer_network.tgf"}.
 Writing network structure to "16_peer_network.tgf"
 {output_tgf,"16_peer_network.tgf"}
-'''
+```
