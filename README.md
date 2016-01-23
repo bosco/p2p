@@ -6,12 +6,9 @@ I wanted to learn me some erlang for great good, so I wrote this p2p network sim
 ### \#peer
 This record is used in a whole bunch of stuff. Here are its elements:
 
-id - An SHA1 hash that is unique to the peer
-
-server\_pid - The PID of the server process associated with this peer
-
-client\_pid - The PID of the client process associated with this peer
-
+**id** - An SHA1 hash that is unique to the peer
+**server\_pid** - The PID of the server process associated with this peer
+**client\_pid** - The PID of the client process associated with this peer
 
 ### Peers
 This is a gb\_tree that contains all the peers a peer knows about. The key is the peer id, and the value is {server\_pid, client\_pid}. A tree works nicely for this because we spend a lot of time searching for the peer *closest* to a certain id.
