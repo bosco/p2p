@@ -15,13 +15,15 @@ add_peer(Peer, Peers) ->
 %%% Looks through our local peers tree to find the closest match
 closest_peer(Search_key, {_, Tree}) ->
 	closest_peer(Search_key, Tree);
+closest_peer(Search_key, {Key, {Server_pid, Client_pid}, _, _}) when Search_key == Key ->
+	#peer{id=Key, server_pid=Server_pid, client_pid=Client_pid};
 closest_peer(Search_key, {Key, {Server_pid, Client_pid}, nil, _}) when Search_key < Key ->
 	#peer{id=Key, server_pid=Server_pid, client_pid=Client_pid};
-closest_peer(Search_key, {Key, {Server_pid, Client_pid}, _, nil}) when Search_key >= Key ->
+closest_peer(Search_key, {Key, {Server_pid, Client_pid}, _, nil}) when Search_key > Key ->
 	#peer{id=Key, server_pid=Server_pid, client_pid=Client_pid};
 closest_peer(Search_key, {Key, _, Smaller, _}) when Search_key < Key ->
 	closest_peer(Search_key, Smaller); 
-closest_peer(Search_key, {Key, _, _, Bigger}) when Search_key >= Key ->
+closest_peer(Search_key, {Key, _, _, Bigger}) when Search_key > Key ->
 	closest_peer(Search_key, Bigger).
 
 %%% Finds the closest peer in the whole network
